@@ -3,112 +3,184 @@ import { watch, onMounted, reactive, ref } from "vue";
 
 export default {
   setup() {
-    /// obj= {    name:"name" , type: txt / file   ,  layer:層      ,children:[ ]   }
+    /// 預設的file = {    name:"name" , type: txt / file      ,children:[ ]      ID / layer }
+    class file {
+      constructor(name, children) {
+        this.name = name;
+
+        this.children = children;
+      }
+    }
+
+    //  const  obj = (name, type, children) => new file(name, type, children);
+    let test = new file("obj", []);
+
+    let obj1 = new file("obj1", []);
+    let obj2 = new file("obj2", []);
+    let obj3 = new file("obj3", []);
+    let obj4 = new file("obj4", []);
+    let obj5 = new file("obj5", []);
+    let obj6 = new file("obj6", []);
+    let obj7 = new file("obj7", []);
+    let file1 = new file("資料夾1", [obj2, obj3]);
+    let file5 = new file("資料夾5", [obj4]);
+    let file6 = new file("資料夾6", [obj7]);
+    let file3 = new file("資料夾3", [file5, obj5]);
+    let file4 = new file("資料夾4", [file6]);
+    let file2 = new file("資料夾2", [file3, obj6, file4]);
 
     const state = reactive({
-      files: [
-        { file: { name: "1" } },
-        [{ file: { name: "2" } }, { file: { name: "3" } }],
-        [
-          [[{ file: { name: "4" } }], { file: { name: "5" } }],
-          { file: { name: "6" } },
-          [[{ file: { name: "7" } }]],
-        ],
-      ],
+      files: [obj1, file1, file2],
     });
 
+    // state展開
     const reState = reactive({ files: [] });
+    // 點擊
     const active = ref();
+
+    // 階層樣式 test
+    const layer = ["a", "b", "c", "d", "e", "f ", "g"];
+
+    const addFileList = reactive({ id: "", layer: "" });
     const inputText = ref("");
 
     watch(reState, () => {
       reState.files.forEach((item, index) => {
         item.ID = index;
-
         if (item.isShow == null) {
-          item.isShow = false;
-          if (item.layer == "a") {
-            item.isShow = true;
-          }
+          item.isShow = true;
         }
-        // console.log(item);
       });
     });
-    // 階層樣式
-    const layer = ["a", "b", "c", "d", "e", "f"];
 
-
-    // 新增檔案
-    const addText = () => {
+    // 新增檔案///
+    const addFile = () => {
       let getID = active.value.getAttribute("id");
-      let inputSplit = inputText.value.split(".");
-      let inputName = inputSplit[0];
-      if (Array.isArray(inputSplit) === true) {
-        let inputType = inputSplit[1];
-        if (inputType === undefined) {
-          inputName = "資料夾";
-          if (getID != undefined) {
-            reState.files.forEach((item, index) => {
-              if (item.ID == getID) {
-                let obj = { file: { name: inputName } };
-                reState.files.splice(index + 1, 0, obj);
-              }
-              inputText.value = "";
-            });
-          } else {
-            alert("選擇路徑");
+
+      if (getID != undefined) {
+        let inputSplit = inputText.value.split(".");
+        let inputName = inputSplit[0];
+        if (Array.isArray(inputSplit) === true) {
+          let inputType = inputSplit[1];
+          // 如果是資料夾
+          if (inputType === undefined) {
+            inputName = `資料夾-${inputName}`;
+            let obj = {
+              name: inputName,
+              type: "file",
+              layer: addFileList.layer,
+            };
+            reState.files.splice(addFileList.id + 1, 0, obj);
+
+            inputText.value = "";
+          } else if (inputSplit.length > 2) {
+            alert("輸入格式錯誤");
           }
-        } else if (inputSplit.length > 2) {
-          alert("輸入格式錯誤");
-        } else {
-          if (getID != undefined) {
-            reState.files.forEach((item, index) => {
-              if (item.ID == getID) {
-                let obj = { file: { name: inputName } };
-                reState.files.splice(index + 1, 0, obj);
-              }
+          // 執行檔 type: inputType
+          else {
+            if (getID != undefined) {
+              let obj = {
+                name: inputName,
+                type: "txt",
+                layer: addFileList.layer,
+              };
+              reState.files.splice(addFileList.id + 1, 0, obj);
+
               inputText.value = "";
-            });
-          } else {
-            alert("選擇路徑");
+            }
           }
         }
+      } else {
+        alert("選擇路徑");
       }
     };
-    const handShow = () => {};
 
     //新增點選樣式 /移除舊的
     addEventListener("click", (e) => {
       let input = document.querySelector("input");
-
       //目前點選的
       let target = e.target;
       //上一個被點選的
       let actived = document.querySelector(".active");
       ///
-      //如果沒點input 移除舊的
+      //如果沒點input移除舊的 / 舊的不能為空
       if (target != input) {
-        //檢查是否點擊的是dom li
+        if (actived !== null) {
+          actived.classList.toggle("active");
+        }
+        target.classList.toggle("active");
+
+        //檢查是否點擊的是 li
+        let getID = target.getAttribute("id");
+
         if (target.tagName === "LI") {
-          if (actived !== null) {
-            actived.classList.toggle("active");
-          }
-          target.classList.toggle("active");
-
-          let getID = target.getAttribute("id");
-
           reState.files.forEach((item) => {
+            // 抓 id
             if (item.ID == getID) {
-              // 抓到 id了 => 換當層layer => 如果是資料夾 => 下層layer的item.isShow 開關
-              //
-              console.log(item.isShow);
-              console.log(item.layer);
-
-              // item.isShow = true;
+              // 丟file 到當層layer ,如果是資料夾 => 下層layer
+              addFileList.id = item.ID;
+              addFileList.layer = item.layer;
+              if (item.type === "file") {
+                let idx = layer.indexOf(addFileList.layer);
+                addFileList.layer = layer[idx + 1];
+              }
             }
           });
         }
+        // 檢查是否點擊的是  checkbox
+        else if (target.parentElement.tagName === "LI") {
+          let getID = target.parentElement.getAttribute("id");
+          reState.files.forEach((item, index) => {
+            // 抓 id
+            if (item.ID == getID) {
+              // startIndex 為子目錄 起始的index
+              let startIndex = index + 1;
+              // endIndex 為子目錄 結束的index
+              let endIndex = null;
+
+              // subLayer 為判斷子層的依據
+              let subLayer = item.layer;
+              let subArray = reState.files.slice(startIndex);
+
+              // 判斷子目錄有無資料
+              if (layer.indexOf(subLayer) < layer.indexOf(subArray[0].layer)) {
+                let getIndex = subArray.findIndex(
+                  (item) => item.layer === subLayer
+                );
+                if (getIndex === -1) {
+                  endIndex = reState.files.length - 1;
+                } else {
+                  endIndex = startIndex + getIndex - 1;
+                }
+                // 判斷是要開啟 或 關閉
+                if (target.checked == false) {
+                  //開
+                  console.log("open");
+                  let changeArr = reState.files.slice(startIndex, endIndex + 1);
+                  // console.log(changeArr);
+                  changeArr.forEach((item) => {
+                    // 開啟同層的資料
+                    if (item.layer == subArray[0].layer) {
+                      item.isShow = true;
+                    }
+                  });
+                } else {
+                  console.log("close");
+                  let changeArr = reState.files.slice(startIndex, endIndex + 1);
+                  // console.log(changeArr);
+                  changeArr.forEach((item) => {
+                    item.isShow = false;
+                  });
+                }
+              } else {
+                console.log("無資料");
+              }
+            }
+          });
+        }
+
         active.value = target;
+
         // console.log(target);
         // console.log("------------");
         // console.log(reState.files);
@@ -116,64 +188,64 @@ export default {
     });
 
     // --------------------(階層展開-----------------
-    let layerIdx = 0;
+    let layerBase = 0;
 
-    const isArr = (item, idx) => {
+    const loadFile = (item, idx) => {
       item.forEach((item) => {
-        itemCheckArr(item, idx);
+        checkChildren(item, idx);
       });
     };
 
-    const itemCheckArr = (item, idx) => {
-      if (Array.isArray(item) === true) {
-        reState.files.push({ file: { name: "資料夾" }, layer: layer[idx] });
+    const checkChildren = (item, idx) => {
+      item.layer = layer[idx];
+      reState.files.push(item);
+      // children 有資料
+      if (item.children.length != 0) {
+        item.type = "file";
         idx++;
-        isArr(item, idx);
+        loadFile(item.children, idx);
       } else {
-        item.layer = layer[idx];
-        reState.files.push(item);
-        // return;
+        item.type = "txt";
       }
     };
     // --------------------------------------------------階層展開)
     onMounted(() => {
-      isArr(state.files, layerIdx);
+      loadFile(state.files, layerBase);
     });
 
     return {
       inputText,
       reState,
       state,
-      addText,
+      addFile,
     };
   },
 };
 </script>
 <template>
-  <div class="side">
+  <div class="main">
     <div class="header">
       <h1>檔案總管</h1>
     </div>
-    <hr />
-    <input type="text" @keyup.enter="addText" v-model="inputText" />
-    <br />
-    <ul>
-      <li
-        v-for="(item, index) in reState.files"
-        :key="index"
-        :class="item.layer"
-        :id="index"
-      >
-        <!-- v-show="item.isShow" -->
-        <input type="checkbox" v-show="item.file.name == '資料夾'" />
-        {{ item.file.name }} - 層:{{ item.layer }}
-      </li>
-    </ul>
+    <div class="content">
+      <input type="text" @keyup.enter="addFile" v-model="inputText" />
+      <ul>
+        <li
+          v-for="(item, index) in reState.files"
+          :key="item.ID"
+          :class="item.layer"
+          :id="item.ID"
+          v-show="item.isShow"
+        >
+          <input type="checkbox" v-show="item.type == 'file'" value="false" />
+          {{ item.ID }}***{{ item.name }} :::{{ item.layer }}
+        </li>
+      </ul>
+    </div>
+    <div class="footer">search</div>
   </div>
 
-  <!-- <div class="aside">
-    <ul></ul>
-  </div> -->
+  <div class="aside">nav</div>
 </template>
 
 <style lang="scss">
@@ -223,19 +295,31 @@ ul {
   width: 100%;
   height: 100%;
 }
-.side {
+.main {
   width: 80%;
   display: flex;
   flex-direction: column;
   align-items: center;
+
   .header {
-    text-align: center;
     width: 100%;
-    height: 100px;
+    border: 2px solid red;
+    text-align: center;
+  }
+  .content {
+    width: 100%;
+    flex: auto;
+    border: 2px solid red;
+  }
+  .footer {
+    width: 100%;
+    height: 20%;
+    border: 2px solid blue;
+    text-align: center;
   }
 }
 .aside {
-  border: 5px solid red;
+  border: 2px solid red;
   width: 20%;
 }
 </style>
